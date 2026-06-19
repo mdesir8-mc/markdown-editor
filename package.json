@@ -21,6 +21,7 @@
   "build": {
     "appId": "com.markdown-editor.app",
     "productName": "Markdown Editor",
+    "icon": "icon.icns",
     "mac": {
       "category": "public.app-category.productivity",
       "target": "dmg"
