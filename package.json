@@ -2,6 +2,10 @@
   "name": "markdown-editor",
   "version": "1.0.0",
   "description": "Side-by-side Markdown editor and viewer for Mac",
+  "author": {
+    "name": "Michael",
+    "email": "desirmichaelr@gmail.com"
+  },
   "main": "main.js",
   "scripts": {
     "start": "electron .",
