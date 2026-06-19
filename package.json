@@ -20,6 +20,14 @@
     "mac": {
       "category": "public.app-category.productivity",
       "target": "dmg"
-    }
+    },
+    "fileAssociations": [
+      {
+        "ext": ["md", "markdown"],
+        "name": "Markdown File",
+        "description": "Markdown document",
+        "role": "Editor"
+      }
+    ]
   }
 }

@@ -4,6 +4,7 @@ const path = require('path');
 
 let mainWindow;
 let currentFilePath = null;
+let pendingOpenPath = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -41,9 +42,7 @@ function buildMenu() {
               properties: ['openFile'],
             });
             if (canceled) return;
-            const content = fs.readFileSync(filePaths[0], 'utf8');
-            currentFilePath = filePaths[0];
-            mainWindow.webContents.send('file-opened', { path: filePaths[0], content });
+            openFile(filePaths[0]);
           },
         },
         {
@@ -87,9 +86,31 @@ ipcMain.handle('save-file', async (_e, { content, saveAs }) => {
   return { saved: true, path: currentFilePath };
 });
 
+function openFile(filePath) {
+  currentFilePath = filePath;
+  const content = fs.readFileSync(filePath, 'utf8');
+  if (mainWindow?.webContents) {
+    mainWindow.webContents.send('file-opened', { path: filePath, content });
+  } else {
+    pendingOpenPath = filePath;
+  }
+}
+
+// macOS: fired when a file is opened via Finder / "Open With"
+app.on('open-file', (event, filePath) => {
+  event.preventDefault();
+  openFile(filePath);
+});
+
 app.whenReady().then(() => {
   createWindow();
   buildMenu();
+  mainWindow.webContents.on('did-finish-load', () => {
+    if (pendingOpenPath) {
+      openFile(pendingOpenPath);
+      pendingOpenPath = null;
+    }
+  });
 });
 
 app.on('window-all-closed', () => app.quit());
