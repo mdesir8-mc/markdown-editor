@@ -1,0 +1,25 @@
+{
+  "name": "markdown-editor",
+  "version": "1.0.0",
+  "description": "Side-by-side Markdown editor and viewer for Mac",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --mac"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "dependencies": {
+    "marked": "^12.0.0"
+  },
+  "build": {
+    "appId": "com.markdown-editor.app",
+    "productName": "Markdown Editor",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": "dmg"
+    }
+  }
+}
