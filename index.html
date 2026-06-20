@@ -196,6 +196,20 @@
 
     function render() {
       preview.innerHTML = marked.parse(editor.value);
+      preview.querySelectorAll('input[type="checkbox"]').forEach((box, i) => {
+        box.removeAttribute('disabled');
+        box.style.cursor = 'pointer';
+        box.addEventListener('change', () => {
+          let count = -1;
+          editor.value = editor.value.replace(/^(\s*[-*+]\s+)\[(x| )\]/gim, (match, prefix, state) => {
+            count++;
+            if (count === i) return prefix + (state === ' ' ? '[x]' : '[ ]');
+            return match;
+          });
+          setModified(true);
+          render();
+        });
+      });
     }
 
     function setModified(val) {
