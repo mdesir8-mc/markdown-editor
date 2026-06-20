@@ -44,10 +44,23 @@
     }
 
     #editor-pane {
-      flex: 1;
+      width: 50%;
+      min-width: 100px;
       display: flex;
       flex-direction: column;
-      border-right: 1px solid #313244;
+      overflow: hidden;
+    }
+
+    #divider {
+      width: 5px;
+      background: #313244;
+      cursor: col-resize;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+
+    #divider:hover, #divider.dragging {
+      background: #cba6f7;
     }
 
     #pane-label {
@@ -164,6 +177,7 @@
       <div id="pane-label">Editor</div>
       <textarea id="editor" spellcheck="false" placeholder="Start writing Markdown…"></textarea>
     </div>
+    <div id="divider"></div>
     <div id="preview-pane">
       <div id="preview-label">Preview</div>
       <div id="preview"></div>
@@ -221,6 +235,34 @@
     window.api.onFileSaveAs(async () => {
       const result = await window.api.saveFile(editor.value, true);
       if (result.saved) setPath(result.path);
+    });
+
+    // Divider drag
+    const divider = document.getElementById('divider');
+    const editorPane = document.getElementById('editor-pane');
+    const panes = document.getElementById('panes');
+
+    divider.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      divider.classList.add('dragging');
+      const startX = e.clientX;
+      const startW = editorPane.offsetWidth;
+      const totalW = panes.offsetWidth;
+
+      function onMove(e) {
+        const delta = e.clientX - startX;
+        const newW = Math.min(Math.max(startW + delta, 100), totalW - 105);
+        editorPane.style.width = newW + 'px';
+      }
+
+      function onUp() {
+        divider.classList.remove('dragging');
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      }
+
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
     });
 
     // Initial render
