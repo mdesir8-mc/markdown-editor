@@ -229,6 +229,41 @@
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--scroll); border-radius: 3px; }
+
+    .src-block { display: contents; }
+
+    #ctxmenu {
+      position: fixed;
+      display: none;
+      z-index: 1000;
+      background: var(--bg2);
+      border: 1px solid var(--surface);
+      border-radius: 6px;
+      padding: 4px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    }
+
+    #ctxmenu button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 13px;
+      font-family: inherit;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    #ctxmenu button:hover { background: var(--surface); }
+
+    @keyframes flash {
+      from { background: var(--accent); }
+      to { background: transparent; }
+    }
   </style>
 </head>
 <body>
@@ -254,6 +289,10 @@
     </div>
   </div>
 
+  <div id="ctxmenu">
+    <button id="ctx-jump">Jump to source in editor</button>
+  </div>
+
   <script src="node_modules/marked/marked.min.js"></script>
   <script>
     const editor = document.getElementById('editor');
@@ -266,7 +305,19 @@
     marked.setOptions({ breaks: true, gfm: true });
 
     function render() {
-      preview.innerHTML = marked.parse(editor.value);
+      const src = editor.value;
+      const tokens = marked.lexer(src);
+      let html = '';
+      let offset = 0;
+      for (const tok of tokens) {
+        if (tok.type === 'space') { offset += tok.raw.length; continue; }
+        const startLine = src.slice(0, offset).split('\n').length - 1;
+        const one = [tok];
+        one.links = tokens.links || {};
+        html += `<div class="src-block" data-line="${startLine}">${marked.parser(one)}</div>`;
+        offset += tok.raw.length;
+      }
+      preview.innerHTML = html;
       preview.querySelectorAll('input[type="checkbox"]').forEach((box, i) => {
         box.removeAttribute('disabled');
         box.style.cursor = 'pointer';
@@ -358,6 +409,35 @@
 
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
+    });
+
+    // Right-click preview -> jump editor to source line
+    const ctxmenu = document.getElementById('ctxmenu');
+    let ctxLine = null;
+
+    preview.addEventListener('contextmenu', (e) => {
+      const block = e.target.closest('.src-block');
+      if (!block) return;
+      e.preventDefault();
+      ctxLine = parseInt(block.dataset.line, 10);
+      ctxmenu.style.left = e.clientX + 'px';
+      ctxmenu.style.top = e.clientY + 'px';
+      ctxmenu.style.display = 'block';
+    });
+
+    document.addEventListener('click', () => { ctxmenu.style.display = 'none'; });
+    document.addEventListener('scroll', () => { ctxmenu.style.display = 'none'; }, true);
+
+    document.getElementById('ctx-jump').addEventListener('click', () => {
+      if (ctxLine == null) return;
+      const lines = editor.value.split('\n');
+      let pos = 0;
+      for (let i = 0; i < ctxLine && i < lines.length; i++) pos += lines[i].length + 1;
+      const lineLen = lines[ctxLine]?.length || 0;
+      editor.focus();
+      editor.setSelectionRange(pos, pos + lineLen);
+      const lineHeight = parseFloat(getComputedStyle(editor).lineHeight) || 22;
+      editor.scrollTop = Math.max(0, ctxLine * lineHeight - editor.clientHeight / 2);
     });
 
     // Initial render
