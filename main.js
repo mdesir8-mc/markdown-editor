@@ -100,6 +100,40 @@ ipcMain.handle('save-file', async (_e, { content, saveAs }) => {
   return { saved: true, path: currentFilePath };
 });
 
+// Native context menu for the editor textarea
+ipcMain.handle('ctx-editor', (_e, line) => {
+  const items = [
+    { role: 'cut' },
+    { role: 'copy' },
+    { role: 'paste' },
+    { type: 'separator' },
+    { role: 'selectAll' },
+  ];
+  if (line >= 0) {
+    items.push(
+      { type: 'separator' },
+      { label: 'Jump to preview', click() { mainWindow.webContents.send('jump-to-preview', line); } },
+    );
+  }
+  Menu.buildFromTemplate(items).popup({ window: mainWindow });
+});
+
+// Native context menu for the preview pane
+ipcMain.handle('ctx-preview', (_e, line) => {
+  const items = [
+    { role: 'copy' },
+    { type: 'separator' },
+    { role: 'selectAll' },
+  ];
+  if (line >= 0) {
+    items.push(
+      { type: 'separator' },
+      { label: 'Jump to source in editor', click() { mainWindow.webContents.send('jump-to-editor', line); } },
+    );
+  }
+  Menu.buildFromTemplate(items).popup({ window: mainWindow });
+});
+
 function openFile(filePath) {
   currentFilePath = filePath;
   const content = fs.readFileSync(filePath, 'utf8');

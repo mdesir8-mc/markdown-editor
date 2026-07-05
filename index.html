@@ -7,42 +7,46 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* Default: Tokyo Night — deep navy, blue accent */
     :root {
-      --bg: #1e1e2e;
-      --bg2: #181825;
-      --surface: #313244;
-      --text: #cdd6f4;
-      --muted: #6c7086;
-      --accent: #cba6f7;
-      --link: #89b4fa;
-      --dim: #a6adc8;
-      --scroll: #45475a;
+      --bg: #1a1b26;
+      --bg2: #16161e;
+      --surface: #2f334d;
+      --text: #c0caf5;
+      --muted: #565f89;
+      --accent: #7aa2f7;
+      --link: #7dcfff;
+      --dim: #9aa5ce;
+      --scroll: #3b4261;
     }
 
-    body[data-theme="latte"] {
-      --bg: #eff1f5;
-      --bg2: #e6e9ef;
-      --surface: #ccd0da;
-      --text: #4c4f69;
-      --muted: #8c8fa1;
-      --accent: #8839ef;
-      --link: #1e66f5;
-      --dim: #6c6f85;
-      --scroll: #bcc0cc;
+    /* Gruvbox — warm retro, orange accent, cream text */
+    body[data-theme="gruvbox"] {
+      --bg: #282828;
+      --bg2: #1d2021;
+      --surface: #3c3836;
+      --text: #ebdbb2;
+      --muted: #928374;
+      --accent: #fe8019;
+      --link: #83a598;
+      --dim: #d5c4a1;
+      --scroll: #504945;
     }
 
+    /* Nord — arctic, frost-cyan accent */
     body[data-theme="nord"] {
       --bg: #2e3440;
       --bg2: #272c36;
       --surface: #3b4252;
       --text: #d8dee9;
-      --muted: #7b88a1;
+      --muted: #6d7893;
       --accent: #88c0d0;
       --link: #81a1c1;
       --dim: #a3acbe;
       --scroll: #4c566a;
     }
 
+    /* Dracula — the one purple */
     body[data-theme="dracula"] {
       --bg: #282a36;
       --bg2: #21222c;
@@ -55,13 +59,40 @@
       --scroll: #44475a;
     }
 
+    /* Rosé Pine — muted rose + pine, calm */
+    body[data-theme="rosepine"] {
+      --bg: #191724;
+      --bg2: #1f1d2e;
+      --surface: #26233a;
+      --text: #e0def4;
+      --muted: #6e6a86;
+      --accent: #ebbcba;
+      --link: #9ccfd8;
+      --dim: #908caa;
+      --scroll: #403d52;
+    }
+
+    /* GitHub Light — crisp white, doc-style blue accent */
+    body[data-theme="github"] {
+      --bg: #ffffff;
+      --bg2: #f6f8fa;
+      --surface: #d0d7de;
+      --text: #1f2328;
+      --muted: #656d76;
+      --accent: #0969da;
+      --link: #0969da;
+      --dim: #57606a;
+      --scroll: #afb8c1;
+    }
+
+    /* Solarized Light — sepia, green heading + blue link */
     body[data-theme="solarized"] {
       --bg: #fdf6e3;
       --bg2: #eee8d5;
       --surface: #d3cbb7;
       --text: #586e75;
       --muted: #93a1a1;
-      --accent: #d33682;
+      --accent: #859900;
       --link: #268bd2;
       --dim: #657b83;
       --scroll: #c9c1ad;
@@ -232,34 +263,6 @@
 
     .src-block { display: contents; }
 
-    #ctxmenu {
-      position: fixed;
-      display: none;
-      z-index: 1000;
-      background: var(--bg2);
-      border: 1px solid var(--surface);
-      border-radius: 6px;
-      padding: 4px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
-    }
-
-    #ctxmenu button {
-      display: block;
-      width: 100%;
-      text-align: left;
-      background: none;
-      border: none;
-      color: var(--text);
-      font-size: 13px;
-      font-family: inherit;
-      padding: 6px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
-    #ctxmenu button:hover { background: var(--surface); }
-
     @keyframes flash {
       from { background: var(--accent); }
       to { background: transparent; }
@@ -270,10 +273,12 @@
   <div id="titlebar">
     <span id="filename">untitled.md</span>
     <select id="theme-select" title="Theme">
-      <option value="mocha">Mocha (dark)</option>
-      <option value="dracula">Dracula</option>
-      <option value="nord">Nord</option>
-      <option value="latte">Latte (light)</option>
+      <option value="tokyo">Tokyo Night (dark)</option>
+      <option value="gruvbox">Gruvbox (dark)</option>
+      <option value="nord">Nord (dark)</option>
+      <option value="dracula">Dracula (dark)</option>
+      <option value="rosepine">Rosé Pine (dark)</option>
+      <option value="github">GitHub (light)</option>
       <option value="solarized">Solarized (light)</option>
     </select>
   </div>
@@ -287,10 +292,6 @@
       <div id="preview-label">Preview</div>
       <div id="preview"></div>
     </div>
-  </div>
-
-  <div id="ctxmenu">
-    <button id="ctx-jump">Jump to source in editor</button>
   </div>
 
   <script src="node_modules/marked/marked.min.js"></script>
@@ -351,14 +352,16 @@
     });
 
     // Theme switching
+    const THEMES = ['tokyo', 'gruvbox', 'nord', 'dracula', 'rosepine', 'github', 'solarized'];
     function applyTheme(name) {
-      if (name === 'mocha') document.body.removeAttribute('data-theme');
+      if (!THEMES.includes(name)) name = 'tokyo';
+      if (name === 'tokyo') document.body.removeAttribute('data-theme');
       else document.body.setAttribute('data-theme', name);
       themeSelect.value = name;
       localStorage.setItem('theme', name);
     }
     themeSelect.addEventListener('change', () => applyTheme(themeSelect.value));
-    applyTheme(localStorage.getItem('theme') || 'mocha');
+    applyTheme(localStorage.getItem('theme') || 'tokyo');
 
     // IPC handlers
     window.api.onFileNew(() => {
@@ -411,33 +414,47 @@
       document.addEventListener('mouseup', onUp);
     });
 
-    // Right-click preview -> jump editor to source line
-    const ctxmenu = document.getElementById('ctxmenu');
-    let ctxLine = null;
-
-    preview.addEventListener('contextmenu', (e) => {
-      const block = e.target.closest('.src-block');
-      if (!block) return;
-      e.preventDefault();
-      ctxLine = parseInt(block.dataset.line, 10);
-      ctxmenu.style.left = e.clientX + 'px';
-      ctxmenu.style.top = e.clientY + 'px';
-      ctxmenu.style.display = 'block';
-    });
-
-    document.addEventListener('click', () => { ctxmenu.style.display = 'none'; });
-    document.addEventListener('scroll', () => { ctxmenu.style.display = 'none'; }, true);
-
-    document.getElementById('ctx-jump').addEventListener('click', () => {
-      if (ctxLine == null) return;
+    // Jump helpers
+    function jumpEditorToLine(line) {
       const lines = editor.value.split('\n');
       let pos = 0;
-      for (let i = 0; i < ctxLine && i < lines.length; i++) pos += lines[i].length + 1;
-      const lineLen = lines[ctxLine]?.length || 0;
+      for (let i = 0; i < line && i < lines.length; i++) pos += lines[i].length + 1;
+      const lineLen = lines[line]?.length || 0;
       editor.focus();
       editor.setSelectionRange(pos, pos + lineLen);
       const lineHeight = parseFloat(getComputedStyle(editor).lineHeight) || 22;
-      editor.scrollTop = Math.max(0, ctxLine * lineHeight - editor.clientHeight / 2);
+      editor.scrollTop = Math.max(0, line * lineHeight - editor.clientHeight / 2);
+    }
+
+    function jumpPreviewToLine(line) {
+      const blocks = [...preview.querySelectorAll('.src-block')];
+      let target = null;
+      for (const b of blocks) {
+        if (parseInt(b.dataset.line, 10) <= line) target = b;
+        else break;
+      }
+      if (!target) return;
+      const el = target.firstElementChild || target;
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.style.animation = 'flash 1s ease';
+      setTimeout(() => { el.style.animation = ''; }, 1000);
+    }
+
+    window.api.onJumpToEditor(jumpEditorToLine);
+    window.api.onJumpToPreview(jumpPreviewToLine);
+
+    // Native right-click menus (copy/paste/select-all + jump)
+    editor.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      const line = editor.value.slice(0, editor.selectionStart).split('\n').length - 1;
+      window.api.showEditorMenu(line);
+    });
+
+    preview.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      const block = e.target.closest('.src-block');
+      const line = block ? parseInt(block.dataset.line, 10) : -1;
+      window.api.showPreviewMenu(line);
     });
 
     // Initial render
