@@ -312,6 +312,10 @@
   </div>
 
   <script src="node_modules/marked/marked.min.js"></script>
+  <script src="node_modules/mammoth/mammoth.browser.min.js"></script>
+  <script src="node_modules/turndown/lib/turndown.browser.umd.js"></script>
+  <script src="node_modules/turndown-plugin-gfm/dist/turndown-plugin-gfm.js"></script>
+  <script src="web/docx.js"></script>
   <script src="web/compare.js"></script>
   <script>
     const editor = document.getElementById('editor');
@@ -388,10 +392,24 @@
       setPath(null);
     });
 
-    window.api.onFileOpened(({ path, content }) => {
-      editor.value = content;
+    // The main process sends text for Markdown files and raw bytes for .docx.
+    async function readContent({ content, data }) {
+      if (data == null) return content;
+      const bytes = new Uint8Array(data);
+      return DocxImport.toMarkdown(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+    }
+
+    window.api.onFileOpened(async (file) => {
+      try {
+        editor.value = await readContent(file);
+      } catch (err) {
+        alert('Could not open ' + file.path.split('/').pop() + ': ' + err.message);
+        return;
+      }
       render();
-      setPath(path);
+      setPath(file.path);
+      // A converted .docx has no Markdown file behind it yet
+      if (file.data != null) setModified(true);
     });
 
     window.api.onFileSave(async () => {
@@ -411,7 +429,13 @@
       getCurrent: () => ({ name: filenameEl.textContent, text: editor.value }),
       pickFile: async () => {
         const f = await window.api.pickFile();
-        return f && { name: f.path.split('/').pop(), text: f.content };
+        if (!f) return null;
+        try {
+          return { name: f.path.split('/').pop(), text: await readContent(f) };
+        } catch (err) {
+          alert('Could not open ' + f.path.split('/').pop() + ': ' + err.message);
+          return null;
+        }
       },
       onChange: (on) => {
         compareBtn.classList.toggle('on', on);

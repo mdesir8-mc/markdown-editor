@@ -227,7 +227,7 @@
       <option value="github">GitHub (light)</option>
       <option value="solarized">Solarized (light)</option>
     </select>
-    <input type="file" id="file-input" accept=".md,.markdown,.txt" hidden />
+    <input type="file" id="file-input" accept=".md,.markdown,.txt,.docx" hidden />
   </div>
   <div id="panes">
     <div id="editor-pane">
@@ -242,6 +242,10 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/turndown@7.2.0/dist/turndown.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/turndown-plugin-gfm@1.0.2/dist/turndown-plugin-gfm.js"></script>
+  <script src="docx.js"></script>
   <script src="compare.js"></script>
   <script>
     const editor = document.getElementById('editor');
@@ -297,19 +301,27 @@
     themeSelect.addEventListener('change', () => applyTheme(themeSelect.value));
     applyTheme(localStorage.getItem('theme') || 'tokyo');
 
+    // Read a file as Markdown text; .docx files are converted.
+    async function readDocument(file) {
+      if (DocxImport.isDocx(file.name)) {
+        const text = await DocxImport.toMarkdown(await file.arrayBuffer());
+        return { name: DocxImport.mdName(file.name), text, converted: true };
+      }
+      return { name: file.name, text: await file.text(), converted: false };
+    }
+
     // Open file (browser file picker)
     document.getElementById('btn-open').addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', () => {
       const file = fileInput.files[0];
       if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        editor.value = reader.result;
-        render();
-        setFilename(file.name);
-      };
-      reader.readAsText(file);
       fileInput.value = '';
+      readDocument(file).then(({ name, text, converted }) => {
+        editor.value = text;
+        render();
+        setFilename(name);
+        if (converted) { setModified(true); localStorage.setItem('draft', text); }
+      }).catch((err) => alert('Could not open ' + file.name + ': ' + err.message));
     });
 
     // Save file (browser download)
@@ -345,14 +357,15 @@
       pickFile: () => new Promise((resolve) => {
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = '.md,.markdown,.txt';
+        input.accept = '.md,.markdown,.txt,.docx';
         input.addEventListener('cancel', () => resolve(null));
         input.addEventListener('change', () => {
           const file = input.files[0];
           if (!file) return resolve(null);
-          const reader = new FileReader();
-          reader.onload = () => resolve({ name: file.name, text: reader.result });
-          reader.readAsText(file);
+          readDocument(file).then(resolve, (err) => {
+            alert('Could not open ' + file.name + ': ' + err.message);
+            resolve(null);
+          });
         });
         input.click();
       }),

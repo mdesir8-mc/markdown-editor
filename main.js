@@ -5,6 +5,17 @@ const path = require('path');
 let mainWindow;
 let currentFilePath = null;
 let pendingOpenPath = null;
+let suggestedSavePath = null; // where Save As starts for a converted .docx
+
+const isDocx = (filePath) => /\.docx$/i.test(filePath);
+const DOC_FILTERS = [{ name: 'Documents', extensions: ['md', 'markdown', 'txt', 'docx'] }];
+
+// .docx is sent as raw bytes and converted to Markdown in the renderer
+function readDocument(filePath) {
+  return isDocx(filePath)
+    ? { path: filePath.replace(/\.docx$/i, '.md'), data: fs.readFileSync(filePath) }
+    : { path: filePath, content: fs.readFileSync(filePath, 'utf8') };
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -52,7 +63,7 @@ function buildMenu() {
           accelerator: 'CmdOrCtrl+O',
           async click() {
             const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
-              filters: [{ name: 'Markdown', extensions: ['md', 'markdown', 'txt'] }],
+              filters: DOC_FILTERS,
               properties: ['openFile'],
             });
             if (canceled) return;
@@ -97,7 +108,7 @@ ipcMain.handle('save-file', async (_e, { content, saveAs }) => {
   if (!currentFilePath || saveAs) {
     const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
       filters: [{ name: 'Markdown', extensions: ['md'] }],
-      defaultPath: 'untitled.md',
+      defaultPath: suggestedSavePath || 'untitled.md',
     });
     if (canceled) return { saved: false };
     currentFilePath = filePath;
@@ -109,11 +120,11 @@ ipcMain.handle('save-file', async (_e, { content, saveAs }) => {
 // Pick a file to read without making it the document being edited (used by compare)
 ipcMain.handle('pick-file', async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
-    filters: [{ name: 'Markdown', extensions: ['md', 'markdown', 'txt'] }],
+    filters: DOC_FILTERS,
     properties: ['openFile'],
   });
   if (canceled) return null;
-  return { path: filePaths[0], content: fs.readFileSync(filePaths[0], 'utf8') };
+  return readDocument(filePaths[0]);
 });
 
 // Native context menu for the editor textarea
@@ -151,10 +162,12 @@ ipcMain.handle('ctx-preview', (_e, line) => {
 });
 
 function openFile(filePath) {
-  currentFilePath = filePath;
-  const content = fs.readFileSync(filePath, 'utf8');
+  const doc = readDocument(filePath);
+  // Never let Save overwrite the original .docx with Markdown
+  currentFilePath = isDocx(filePath) ? null : filePath;
+  suggestedSavePath = isDocx(filePath) ? doc.path : null;
   if (mainWindow?.webContents) {
-    mainWindow.webContents.send('file-opened', { path: filePath, content });
+    mainWindow.webContents.send('file-opened', doc);
   } else {
     pendingOpenPath = filePath;
   }
