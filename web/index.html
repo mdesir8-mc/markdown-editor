@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Markdown Editor</title>
+  <link rel="stylesheet" href="compare.css" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -216,6 +217,7 @@
     <span id="filename">untitled.md</span>
     <button class="tb-btn" id="btn-open">Open</button>
     <button class="tb-btn" id="btn-save">Save</button>
+    <button class="tb-btn" id="btn-compare" title="Compare two documents side by side">Compare</button>
     <select id="theme-select" title="Theme">
       <option value="tokyo">Tokyo Night (dark)</option>
       <option value="gruvbox">Gruvbox (dark)</option>
@@ -240,6 +242,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+  <script src="compare.js"></script>
   <script>
     const editor = document.getElementById('editor');
     const preview = document.getElementById('preview');
@@ -333,6 +336,31 @@
     const saved = localStorage.getItem('draft');
     if (saved) editor.value = saved;
     editor.addEventListener('input', () => localStorage.setItem('draft', editor.value));
+
+    // Compare view
+    const compareBtn = document.getElementById('btn-compare');
+    const compare = Compare.init({
+      panes: document.getElementById('panes'),
+      getCurrent: () => ({ name: filename, text: editor.value }),
+      pickFile: () => new Promise((resolve) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.md,.markdown,.txt';
+        input.addEventListener('cancel', () => resolve(null));
+        input.addEventListener('change', () => {
+          const file = input.files[0];
+          if (!file) return resolve(null);
+          const reader = new FileReader();
+          reader.onload = () => resolve({ name: file.name, text: reader.result });
+          reader.readAsText(file);
+        });
+        input.click();
+      }),
+      onChange: (on) => {
+        compareBtn.textContent = on ? 'Close compare' : 'Compare';
+      },
+    });
+    compareBtn.addEventListener('click', () => compare.toggle());
 
     // Divider drag
     const divider = document.getElementById('divider');

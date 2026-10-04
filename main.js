@@ -70,6 +70,12 @@ function buildMenu() {
           click() { mainWindow.webContents.send('file-save-as'); },
         },
         { type: 'separator' },
+        {
+          label: 'Compare With…',
+          accelerator: 'CmdOrCtrl+Shift+D',
+          click() { mainWindow.webContents.send('compare-with'); },
+        },
+        { type: 'separator' },
         { role: 'quit' },
       ],
     },
@@ -98,6 +104,16 @@ ipcMain.handle('save-file', async (_e, { content, saveAs }) => {
   }
   fs.writeFileSync(currentFilePath, content, 'utf8');
   return { saved: true, path: currentFilePath };
+});
+
+// Pick a file to read without making it the document being edited (used by compare)
+ipcMain.handle('pick-file', async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+    filters: [{ name: 'Markdown', extensions: ['md', 'markdown', 'txt'] }],
+    properties: ['openFile'],
+  });
+  if (canceled) return null;
+  return { path: filePaths[0], content: fs.readFileSync(filePaths[0], 'utf8') };
 });
 
 // Native context menu for the editor textarea

@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Markdown Editor</title>
+  <link rel="stylesheet" href="web/compare.css" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -129,6 +130,19 @@
       content: ' ●';
       color: var(--accent);
     }
+
+    #compare-btn {
+      -webkit-app-region: no-drag;
+      background: var(--surface);
+      color: var(--text);
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      padding: 3px 10px;
+      cursor: pointer;
+    }
+    #compare-btn:hover { filter: brightness(1.15); }
+    #compare-btn.on { background: var(--accent); color: var(--bg); }
 
     #theme-select {
       -webkit-app-region: no-drag;
@@ -272,6 +286,8 @@
 <body>
   <div id="titlebar">
     <span id="filename">untitled.md</span>
+    <div class="tb-actions">
+    <button id="compare-btn" title="Compare two documents side by side (⇧⌘D)">Compare</button>
     <select id="theme-select" title="Theme">
       <option value="tokyo">Tokyo Night (dark)</option>
       <option value="gruvbox">Gruvbox (dark)</option>
@@ -281,6 +297,7 @@
       <option value="github">GitHub (light)</option>
       <option value="solarized">Solarized (light)</option>
     </select>
+    </div>
   </div>
   <div id="panes">
     <div id="editor-pane">
@@ -295,6 +312,7 @@
   </div>
 
   <script src="node_modules/marked/marked.min.js"></script>
+  <script src="web/compare.js"></script>
   <script>
     const editor = document.getElementById('editor');
     const preview = document.getElementById('preview');
@@ -385,6 +403,23 @@
       const result = await window.api.saveFile(editor.value, true);
       if (result.saved) setPath(result.path);
     });
+
+    // Compare view
+    const compareBtn = document.getElementById('compare-btn');
+    const compare = Compare.init({
+      panes: document.getElementById('panes'),
+      getCurrent: () => ({ name: filenameEl.textContent, text: editor.value }),
+      pickFile: async () => {
+        const f = await window.api.pickFile();
+        return f && { name: f.path.split('/').pop(), text: f.content };
+      },
+      onChange: (on) => {
+        compareBtn.classList.toggle('on', on);
+        compareBtn.textContent = on ? 'Close compare' : 'Compare';
+      },
+    });
+    compareBtn.addEventListener('click', () => compare.toggle());
+    window.api.onCompareWith(() => { compare.open({ prompt: false }); compare.pick('right'); });
 
     // Divider drag
     const divider = document.getElementById('divider');
